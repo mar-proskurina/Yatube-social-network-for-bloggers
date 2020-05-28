@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Редактирование поста{% endblock %}
+{% block content %}
+    <p class="lead">
+        {% if post_id %}
+            Отредактируйте пост.
+        {% else %}
+            Создайте новый пост.
+        {% endif %}
+    </p>
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        {% if post_id %}
+            <input type="submit" value="Сохранить">
+        {% else %}
+            <input type="submit" value="Добавить">
+        {% endif %}
+    </form>
+{% endblock %}
