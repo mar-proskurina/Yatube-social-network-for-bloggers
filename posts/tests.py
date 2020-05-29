@@ -48,8 +48,14 @@ class TestImg(TestCase):
 
         with open('media/posts/puk.jpg', 'rb') as img:
             self.client.post(reverse('post_edit', 
-                kwargs={'username': self.user.username, 'post_id': self.post.id}),
-                {'text': 'edited', 'image': img, 'group': self.group.id})
+                kwargs={
+                    'username': self.user.username, 
+                    'post_id': self.post.id
+                    }),
+                    {'text': 'edited', 
+                    'image': img, 
+                    'group': self.group.id
+                    })
 
 
 
@@ -74,11 +80,12 @@ class TestImg(TestCase):
         #print('---items-in-errors-----')
         #print(resp4.context['form'].errors.items())
         
-        self.assertIn('image', resp4.context['form'].errors)
-        #self.assertNotContains(resp4, tag,
-        #   msg_prefix='На странице группы обнаружен Тэг <img>, файл как-то подгрузился')
+        #self.assertIn('image', resp4.context['form'].errors)
+        self.assertNotContains(resp4, tag,
+           msg_prefix=
+           'На странице группы обнаружен Тэг <img>, файл как-то подгрузился')
 
-# проверяют страницу конкретной записи с картинкой: на странице есть тег <img>
+
     def test_post_page_has_img(self): 
         tag = '<img'
         resp = self.client.get(reverse('post_view', kwargs={
@@ -87,9 +94,9 @@ class TestImg(TestCase):
             msg_prefix='Тэг <img> на странице поста не найден')
 
 
-# проверяют, что на главной странице, на странице профайла и 
-# на странице группы пост с картинкой отображается корректно, с тегом <img>
-    @override_settings(CACHES={'default': {'BACKEND': 'django.core.cache.backends.dummy.DummyCache'}})
+    @override_settings(CACHES={
+        'default': {'BACKEND': 'django.core.cache.backends.dummy.DummyCache'}
+        })
     def test_main_page_has_img(self):
         tag = '<img'
         resp1 = self.client.get('', follow=True) 
@@ -103,7 +110,10 @@ class TestImg(TestCase):
         self.assertContains(resp2, tag,
             msg_prefix='Тэг <img> на странице профиля не найден')
 
-    @override_settings(CACHES={'default': {'BACKEND': 'django.core.cache.backends.dummy.DummyCache'}})
+
+    @override_settings(CACHES={'default': {
+        'BACKEND': 'django.core.cache.backends.dummy.DummyCache'}
+        })
     def test_group_page_has_img(self): 
         tag = '<img'
         resp3 = self.client.get(
@@ -118,12 +128,9 @@ class TestErrorPages(TestCase):
         self.client = Client()
 
 
-# возвращает ли сервер код 404, если страница не найдена.
     def test_page_not_found(self):
         new_url = str(random.randint(0,12))
         response = self.client.get(f'{new_url}', follow=True)
-        #self.assertContains(response, '404', status_code=200, 
-        #    msg_prefix ='В ответе не найдена ошибка 404.')
         
         self.assertEqual(response.status_code, 404,
             msg='На ненайденную страницу сервер не вернул 404')
@@ -138,7 +145,7 @@ class TestPosts(TestCase):
             username='masha_test', 
             password='584645'
         )
-        self.user.save()
+        #self.user.save()
 
 
     def test_profile_creation_upon_registration(self):
@@ -164,13 +171,14 @@ class TestPosts(TestCase):
             msg_prefix='Неавторизованный пользователь не был ' \
                 'перенаправлен на страницу входа.')
 
-    @override_settings(CACHES={'default': {'BACKEND': 'django.core.cache.backends.dummy.DummyCache'}})
+
+    @override_settings(CACHES={'default': {
+        'BACKEND': 'django.core.cache.backends.dummy.DummyCache'
+        }})
     def test_new_post_appears_on_all_pages(self):
 
         self.post = Post.objects.create(
             text='Just look at me', author=self.user)
-
-        #time.sleep(21)
         
         resp1 = self.client.get('', follow=True)
         self.assertContains(resp1, self.post.text, status_code=200, 
@@ -179,14 +187,17 @@ class TestPosts(TestCase):
         resp2 = self.client.get(f'/{self.user.username}', 
             follow=True)
         self.assertContains(resp2, self.post.text, status_code=200, 
-            msg_prefix ='Новый пост не найден на странице профиля пользователя.')        
+            msg_prefix='Новый пост не найден на странице профиля.')        
             
         resp3 = self.client.get(
             f'/{self.user.username}/{self.post.id}', follow=True)
         self.assertContains(resp3, self.post.text, status_code=200, 
             msg_prefix ='Новый пост не найден на странице самого поста.')             
 
-    @override_settings(CACHES={'default': {'BACKEND': 'django.core.cache.backends.dummy.DummyCache'}})
+
+    @override_settings(CACHES={'default': {
+        'BACKEND': 'django.core.cache.backends.dummy.DummyCache'
+        }})
     def test_logged_in_user_can_edit_post(self):
         self.client.force_login(self.user)
         self.post = Post.objects.create(
@@ -211,9 +222,9 @@ class TestPosts(TestCase):
             follow=True)
         self.assertContains(resp2, 'отредактировано', status_code=200, 
             msg_prefix ='Изменения в посте не отображаются '\
-                'на странице профиля пользователя.')        
+                'на странице профиля автора.')        
             
         resp3 = self.client.get(
             f'/{self.user.username}/{self.post.id}', follow=True)
         self.assertContains(resp3, 'отредактировано', status_code=200, 
-            msg_prefix ='Изменения в посте не отображаются на странице самого поста.')   
+            msg_prefix ='Изменения в посте не отображаются на его странице.')   
