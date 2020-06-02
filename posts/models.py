@@ -4,6 +4,24 @@ from django.contrib.auth import get_user_model
 User = get_user_model()
 
 
+class Follow(models.Model):
+    user = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        related_name='follower',
+        null=True,
+    )
+    author = models.ForeignKey(
+        User, 
+        on_delete=models.SET_NULL, 
+        related_name='following',
+        null=True, 
+    )
+
+    def __str__(self):
+        return f'follower - {self.user} following {self.author}.'
+
+
 class Group(models.Model):
     title = models.CharField(max_length=200)
     slug = models.SlugField(max_length=40, unique=True)

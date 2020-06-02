@@ -1,9 +1,123 @@
-from django.test import Client, TestCase, override_settings
-from django.shortcuts import reverse
-from posts.models import User, Post, Group 
-from posts.forms import PostForm
 import random
 import time
+from django.test import Client, TestCase, override_settings
+from django.shortcuts import reverse
+from posts.forms import PostForm
+from posts.models import Comment, Follow, Group, Post, User
+
+
+class TestFollower(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.user_auth = User.objects.create_user(
+            username='masha_test', 
+            password='584645'
+        )
+        self.user_non_auth = User.objects.create_user(
+            username='masha_test_2', 
+            password='584645'
+        )
+        self.user_not_following = User.objects.create_user(
+            username='masha_test_3', 
+            password='584645'
+        )
+        self.client.force_login(self.user_auth)
+
+        self.post = Post.objects.create(
+            text='Just look at me', author=self.user_auth)
+
+
+    def test_auth_user_can_follow(self):
+
+        resp1 = self.client.post(reverse('profile_follow', kwargs={
+            'username': self.user_non_auth.username, 
+            }), follow=True) 
+        
+        follow_amt = Follow.objects.filter(user=self.user_auth).count()
+        
+        self.assertEqual(follow_amt, 1,
+            msg='Тестовый юзер не подписался на автора.')
+
+        resp2 = self.client.post(reverse('profile_unfollow', kwargs={
+            'username': self.user_non_auth.username, 
+            }), follow=True) 
+        
+        follow_amt_2 = Follow.objects.filter(user=self.user_auth).count()
+        
+        self.assertEqual(follow_amt_2, 0,
+            msg='Тестовый юзер не отписался от автора.')
+
+
+    def test_new_post_appears_in_follow_page_of_the_follower(self):
+        self.post = Post.objects.create(
+            text='Just look at me', author=self.user_non_auth
+            )
+        
+        self.client.post(reverse('profile_follow', kwargs={
+            'username': self.user_non_auth.username, 
+            }), follow=True) 
+        resp3 = self.client.get('/follow', follow=True)
+
+        self.assertContains(resp3, self.post.text, status_code=200, 
+            msg_prefix='Новый пост не найден на странице подписок.')   
+        
+
+    def test_new_post_does_not_appear_in_follow_page_of_non_followers(self):
+        self.post = Post.objects.create(
+            text='Just look at me', author=self.user_non_auth
+            )
+        self.user_not_following = Client()
+        resp4 = self.user_not_following.get('/follow', follow=True)
+        self.assertNotContains(resp4, self.post.text, status_code=200, 
+            msg_prefix='Новый пост обнаружен на странице подписок.')
+
+
+class TestComments(TestCase):
+
+    def setUp(self):
+        self.client = Client()
+        self.user_auth = User.objects.create_user(
+            username='masha_test', 
+            password='584645'
+        )
+        self.user_non_auth = User.objects.create_user(
+            username='masha_test_2', 
+            password='584645'
+        )
+        self.client.force_login(self.user_auth)
+        self.post = Post.objects.create(
+            text='Just look at me', author=self.user_auth)
+
+        self.user_non_auth = Client()
+
+
+    def test_auth_user_can_comment(self):
+
+        self.comment = Comment.objects.create(post=self.post, 
+            author=self.user_auth,
+            text='Just look at me')
+        resp1 = self.client.get(reverse('post_view', kwargs={
+            'username': self.user_auth.username, 
+            'post_id': self.post.id}), 
+            follow=True)
+
+        self.assertContains(resp1, 'Just look at me', status_code=200, 
+            msg_prefix='На страинце поста не найден новый комментарий')
+            
+
+    def test_non_auth_user_cannot_comment(self):
+
+        resp2 = self.user_non_auth.get(reverse('add_comment', kwargs={
+            'username': self.user_auth.username, 
+            'post_id': self.post.id}), 
+            follow=True)
+        self.assertRedirects(
+            resp2, 
+            f'/auth/login/?next=/{self.user_auth}/{self.post.id}/comment/',
+            msg_prefix=('Неавторизованный пользователь не был ' 
+                'перенаправлен на страницу входа.')
+        )
 
 
 class TestCache(TestCase):
@@ -24,15 +138,16 @@ class TestCache(TestCase):
 
         resp2 = self.client.get('', follow=True)
         self.assertNotContains(resp2, self.post.text, status_code=200, 
-            msg_prefix ='Кэш не сработал, страница успела обновиться')
+            msg_prefix='Кэш не сработал, страница успела обновиться')
 
         time.sleep(21)
         resp3 = self.client.get('', follow=True)
         self.assertContains(resp3, self.post.text, status_code=200, 
-            msg_prefix ='Новый пост на странице так и не появился')
+            msg_prefix='Новый пост на странице так и не появился')
         
 
 class TestImg(TestCase):
+
     def setUp(self):
         self.client = Client()
         self.user = User.objects.create_user(
@@ -45,7 +160,6 @@ class TestImg(TestCase):
         self.post = Post.objects.create(
             text='Just look at me', author=self.user, group=self.group)
         
-
         with open('media/posts/puk.jpg', 'rb') as img:
             self.client.post(reverse('post_edit', 
                 kwargs={
@@ -58,33 +172,20 @@ class TestImg(TestCase):
                     })
 
 
-
-# проверяют, что срабатывает защита от загрузки файлов не-графических форматов
     def test_nonformat_img_protection(self):
         with open('media/posts/Django2.pdf', 'rb') as fake_img:
             resp4 = self.client.post(reverse('post_edit', kwargs={
                 'username': self.user.username, 'post_id': self.post.id}), 
                 {'text': 'edited', 'image': fake_img, 'group': self.group.id}
             )
-        tag = '<img'
-        
-        #print(resp4.context.keys())
-        #print('--------')
-        #print(resp4.context['form'])
-        #print('---fields-----')
-        #print(resp4.context['form'].fields)
-        #print('---files-----')
-        #print(resp4.context['form'].files)
-        #print('---validity-----')
-        #print(resp4.context['form'].is_valid)
-        #print('---items-in-errors-----')
-        #print(resp4.context['form'].errors.items())
-        
-        #self.assertIn('image', resp4.context['form'].errors)
-        self.assertNotContains(resp4, tag,
-           msg_prefix=
-           'На странице группы обнаружен Тэг <img>, файл как-то подгрузился')
 
+        self.assertIn('image', resp4.context['form'].errors,
+           msg='Форма не отловила ошибку в изображении и приняла картинку.')
+        # хочу сделать через форм еррор, вот так print(resp4.context['form'].errors.items())
+        # я нашла ошибку, но почему-то тест на нее не реагирует, в слаке не получилось 
+        # решить этот вопрос, может, у вас будут идеи?
+        #self.assertFormError(resp4, 'form', 'image', 
+        #    'Загрузите правильное изображение. Файл, который вы загрузили, поврежден или не является изображением.')
 
     def test_post_page_has_img(self): 
         tag = '<img'
@@ -136,7 +237,6 @@ class TestErrorPages(TestCase):
             msg='На ненайденную страницу сервер не вернул 404')
 
 
-
 class TestPosts(TestCase):
     
     def setUp(self):
@@ -145,7 +245,6 @@ class TestPosts(TestCase):
             username='masha_test', 
             password='584645'
         )
-        #self.user.save()
 
 
     def test_profile_creation_upon_registration(self):
@@ -168,8 +267,8 @@ class TestPosts(TestCase):
     def test_not_logged_in_user_cannot_post(self):
         response = self.client.get('/new/', follow=True)
         self.assertRedirects(response, '/auth/login/?next=/new/',
-            msg_prefix='Неавторизованный пользователь не был ' \
-                'перенаправлен на страницу входа.')
+            msg_prefix=('Неавторизованный пользователь не был '
+                'перенаправлен на страницу входа.'))
 
 
     @override_settings(CACHES={'default': {
@@ -182,7 +281,7 @@ class TestPosts(TestCase):
         
         resp1 = self.client.get('', follow=True)
         self.assertContains(resp1, self.post.text, status_code=200, 
-            msg_prefix ='Новый пост не найден на главной странице сайта.')
+            msg_prefix='Новый пост не найден на главной странице сайта.')
             
         resp2 = self.client.get(f'/{self.user.username}', 
             follow=True)
@@ -192,7 +291,7 @@ class TestPosts(TestCase):
         resp3 = self.client.get(
             f'/{self.user.username}/{self.post.id}', follow=True)
         self.assertContains(resp3, self.post.text, status_code=200, 
-            msg_prefix ='Новый пост не найден на странице самого поста.')             
+            msg_prefix='Новый пост не найден на странице самого поста.')             
 
 
     @override_settings(CACHES={'default': {
@@ -206,25 +305,24 @@ class TestPosts(TestCase):
             f'/{self.user.username}/{self.post.id}/edit/',
             follow=True)
         self.assertEqual(response.status_code, 200,
-            msg='Пользователь не был перенаправлен ' \
-                'на страницу редактирования.')        
+            msg=('Пользователь не был перенаправлен ' 
+                'на страницу редактирования.'))       
 
         self.client.post(f'/{self.user.username}/{self.post.id}/edit/', 
             {'text': 'отредактировано'}) 
 
-        #time.sleep(21)
         resp1 = self.client.get('', follow=True)
         self.assertContains(resp1, 'отредактировано', status_code=200, 
-            msg_prefix ='Изменения в посте не отображаются '\
-                'на главной странице сайта.')
+            msg_prefix=('Изменения в посте не отображаются '
+                'на главной странице сайта.'))
 
         resp2 = self.client.get(f'/{self.user.username}', 
             follow=True)
         self.assertContains(resp2, 'отредактировано', status_code=200, 
-            msg_prefix ='Изменения в посте не отображаются '\
-                'на странице профиля автора.')        
+            msg_prefix=('Изменения в посте не отображаются '
+                'на странице профиля автора.'))      
             
         resp3 = self.client.get(
             f'/{self.user.username}/{self.post.id}', follow=True)
         self.assertContains(resp3, 'отредактировано', status_code=200, 
-            msg_prefix ='Изменения в посте не отображаются на его странице.')   
+            msg_prefix='Изменения в посте не отображаются на его странице.')   

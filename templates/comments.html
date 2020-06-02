@@ -10,7 +10,7 @@
     <div class="card-body">
     <form>
         <p><textarea rows="10" cols="60" name="text"></textarea></p>
-        <!--<div class="form-group">
+        <!--<div class="form-group"> если честно, я не уверена, какой блок верный
                 {{ form.text|addclass:"form-control" }}
         </div>-->
         <button type="submit" class="btn btn-primary">Отправить</button>
@@ -20,16 +20,16 @@
 </div>
 {% endif %}
 
-{% for item in comments %}
+{% for comment in comments %}
 <div class="media mb-4">
 <div class="media-body">
     <h5 class="mt-0">
-    <a href="{% url 'profile' item.author.username %}" name="comment_{{ item.id }}">
-        {{ item.author.username }}
+    <a href="{% url 'profile' comment.author.username %}" name="comment_{{ item.id }}">
+        {{ comment.author.username }}
     </a>
-    <small class="text-muted">{{ item.created }}</small>
+    <small class="text-muted">{{ comment.created }}</small>
     </h5>
-    {{ item.text }}
+    {{ comment.text }}
 </div>
 </div>
 
