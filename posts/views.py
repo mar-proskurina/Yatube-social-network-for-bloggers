@@ -35,14 +35,9 @@ def new_post(request):
         form = PostForm(request.POST or None, 
                 files=request.FILES or None)
         if form.is_valid():
-            text = form.cleaned_data['text']
-            group = form.cleaned_data['group']
-            image = form.cleaned_data['image']
-            new_post = Post.objects.create(
-                text=text, 
-                author=request.user,
-                group=group,
-                image=image)
+            new_post = form.save(commit=False) 
+            new_post.author = request.user 
+            new_post.save()
             return redirect('index')
     form = PostForm()
     return render(request, 'new.html', {'form': form})
@@ -89,12 +84,10 @@ def add_comment(request, username, post_id):
     if request.method == 'POST':
         form = CommentForm(request.POST or None)
         if form.is_valid():
-            text = form.cleaned_data['text']
-            new_comment = Comment.objects.create(
-                text=text, 
-                author=request.user,
-                post=post)
-            return redirect('post_view', username, post_id)
+            new_comment = form.save(commit=False) 
+            new_comment.author = request.user 
+            new_comment.post = post
+            new_comment.save()
     form = CommentForm()
     return redirect('post_view', username, post_id) 
 
@@ -112,7 +105,6 @@ def post_edit(request, username, post_id):
                 )
             if form.is_valid():
                 post = form.save(commit=False)
-                post.author = request.user
                 post.save() 
                 return redirect('post_view', username, post_id)
             else: 
@@ -137,12 +129,9 @@ def profile_follow(request, username):
     follower_status = Follow.objects.filter(
         user=request.user, author=author
         ).exists()
-    if follower_status:
-        return redirect('profile', username)
-    else:
+    if not follower_status:
         if request.user != author:
             Follow.objects.create(user=request.user, author=author)
-            return redirect('profile', username)
     return redirect('profile', username)
 
 
