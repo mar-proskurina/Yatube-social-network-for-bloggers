@@ -182,6 +182,7 @@ class TestImg(TestCase):
         self.assertIn('image', resp4.context['form'].errors,
            msg='Форма не отловила ошибку в изображении и приняла картинку.')
 
+
     def test_post_page_has_img(self): 
         tag = '<img'
         resp = self.client.get(reverse('post_view', kwargs={
