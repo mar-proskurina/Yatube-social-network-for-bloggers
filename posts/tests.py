@@ -181,11 +181,6 @@ class TestImg(TestCase):
 
         self.assertIn('image', resp4.context['form'].errors,
            msg='Форма не отловила ошибку в изображении и приняла картинку.')
-        # хочу сделать через форм еррор, вот так print(resp4.context['form'].errors.items())
-        # я нашла ошибку, но почему-то тест на нее не реагирует, в слаке не получилось 
-        # решить этот вопрос, может, у вас будут идеи?
-        #self.assertFormError(resp4, 'form', 'image', 
-        #    'Загрузите правильное изображение. Файл, который вы загрузили, поврежден или не является изображением.')
 
     def test_post_page_has_img(self): 
         tag = '<img'
