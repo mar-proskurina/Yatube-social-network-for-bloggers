@@ -19,26 +19,26 @@
                     <ul class="list-group list-group-flush">
                         <li class="list-group-item">
                             <div class="h6 text-muted">
-                            Подписчиков: {{ author.following.count }} <br />
-                            Подписан: {{ author.follower.count }}
+                                Подписчиков: {{ author.following.count }} <br />
+                                Подписан: {{ author.follower.count }}
                             </div>                               
                         </li>
                         <li class="list-group-item">
                             <div class="h6 text-muted">
-                                {{ posts.count }} 
+                                Записи: {{ posts.count }} 
                             </div>
                         </li>
                         {% if request.user.is_authenticated %}
                             {% if user != author %}
                                 <li class="list-group-item">
                                     {% if follower %}
-                                    <a class="btn btn-lg btn-light" href="{% url 'profile_unfollow' author.username %}" role="button"> 
-                                        Отписаться 
-                                    </a> 
+                                        <a class="btn btn-lg btn-light" href="{% url 'profile_unfollow' author.username %}" role="button"> 
+                                            Отписаться 
+                                        </a> 
                                     {% else %}
-                                    <a class="btn btn-lg btn-primary" href="{% url 'profile_follow' author.username %}" role="button">
-                                        Подписаться 
-                                    </a>
+                                        <a class="btn btn-lg btn-primary" href="{% url 'profile_follow' author.username %}" role="button">
+                                            Подписаться 
+                                        </a>
                                     {% endif %}
                                 </li>
                             {% endif %}
