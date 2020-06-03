@@ -49,7 +49,7 @@ class Post(models.Model):
     image = models.ImageField(upload_to='posts/', blank=True, null=True)
 
     def __str__(self):
-        return f'{self.author}: "{self.text[:20]}"...'
+        return f'{self.author}: {self.text[:20]}...'
 
 
 class Comment(models.Model):
