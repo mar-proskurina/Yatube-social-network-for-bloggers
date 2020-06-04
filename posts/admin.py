@@ -30,8 +30,6 @@ class FollowAdmin(admin.ModelAdmin):
     empty_value_display = '-пусто-'
 
 
-
-
 admin.site.register(Comment, CommentAdmin)
 admin.site.register(Follow, FollowAdmin)
 admin.site.register(Group, GroupAdmin)
