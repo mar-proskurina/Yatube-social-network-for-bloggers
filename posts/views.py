@@ -39,7 +39,8 @@ def new_post(request):
             new_post.author = request.user 
             new_post.save()
             return redirect('index')
-    form = PostForm()
+    else:
+        form = PostForm()
     return render(request, 'new.html', {'form': form})
 
 
@@ -88,7 +89,8 @@ def add_comment(request, username, post_id):
             new_comment.author = request.user 
             new_comment.post = post
             new_comment.save()
-    form = CommentForm()
+    else:
+        form = CommentForm()
     return redirect('post_view', username, post_id) 
 
 
@@ -108,7 +110,7 @@ def post_edit(request, username, post_id):
                 post.save() 
                 return redirect('post_view', username, post_id)
             else: 
-                render(request, 'new.html', {'form': form})
+                return render(request, 'new.html', {'form': form})
         form = PostForm(instance=post)
         return render(request, 'new.html', {
             'form': form, 
